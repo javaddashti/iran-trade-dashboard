@@ -1,0 +1,24 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# Raw source data - do NOT publish
+data/raw/
+
+# Temporary / audit files
+data/processed/hs_reference_audit.xlsx
+~$*.xlsx
+
+# Streamlit secrets if added later
+.streamlit/secrets.toml
+
+# OS files
+.DS_Store
+Thumbs.db
