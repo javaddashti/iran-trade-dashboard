@@ -17,6 +17,7 @@ pages = [
     st.Page("pages/partners.py", title="شرکای تجاری", icon="🌍"),
     st.Page("pages/customs.py", title="گمرک‌ها و بنادر", icon="⚓"),
     st.Page("pages/bushehr_analysis.py", title="تحلیل بوشهر", icon="📍"),
+    st.Page("pages/trade_explorer.py", title="کاوشگر تجارت", icon="🔎"),
 ]
 
 pg = st.navigation(pages)
