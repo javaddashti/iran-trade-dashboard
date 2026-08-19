@@ -3,16 +3,14 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from data_utils import load_parquet, fmt_pct
+from data_utils import load_trade_table, load_hs_reference_bundle, fmt_pct
 from page_utils import (
-    unit_value,
     metric_column,
     metric_scaled,
     chart_layout,
     format_number,
 )
 from hs_helpers import (
-    make_reference_maps,
     label_for,
     short_label_for,
     deepest_selected,
@@ -20,14 +18,9 @@ from hs_helpers import (
     description_for,
 )
 
-national = unit_value(
-    load_parquet("hs_hierarchy_national.parquet")
-)
-bushehr = unit_value(
-    load_parquet("hs_hierarchy_bushehr.parquet")
-)
-ref = load_parquet("hs_reference.parquet")
-maps = make_reference_maps(ref)
+national = load_trade_table("hs_hierarchy_national.parquet")
+bushehr = load_trade_table("hs_hierarchy_bushehr.parquet")
+ref, maps = load_hs_reference_bundle()
 
 st.markdown(
     """
@@ -135,7 +128,7 @@ parent_hs2 = None
 parent_hs4 = None
 parent_hs6 = None
 
-year_df = df[df["Year"].eq(year)].copy()
+year_df = df[df["Year"].eq(year)]
 
 if level in ["HS4", "HS6", "HS8"]:
     hs2_codes = child_codes(year_df, "HS2")
@@ -198,47 +191,9 @@ prefix = (
 )
 
 if prefix:
-    rank = rank[
-        rank["HS_Code"]
-        .astype(str)
-        .str.startswith(str(prefix))
-    ]
+    rank = rank[rank["HS_Code"].str.startswith(str(prefix), na=False)]
 
 value_col = metric_column(metric)
-
-rank = (
-    rank
-    .dropna(subset=[value_col])
-    .sort_values(
-        value_col,
-        ascending=False,
-    )
-)
-
-rank["Full_Label"] = (
-    rank["HS_Code"]
-    .astype(str)
-    .map(
-        lambda x: label_for(
-            x,
-            level,
-            maps,
-        )
-    )
-)
-
-rank["Display"] = (
-    rank["HS_Code"]
-    .astype(str)
-    .map(
-        lambda x: short_label_for(
-            x,
-            level,
-            maps,
-            max_chars=92,
-        )
-    )
-)
 
 top_n = st.slider(
     "تعداد اقلام در نمودار",
@@ -248,11 +203,22 @@ top_n = st.slider(
     5,
 )
 
+# Keep only the rows that will actually be plotted before building Persian
+# labels. This is especially helpful at HS8, where the full ranking can contain
+# thousands of tariff lines.
 top = (
-    rank
-    .head(top_n)
-    .sort_values(value_col)
+    rank.dropna(subset=[value_col])
+        .nlargest(top_n, value_col)
+        .copy()
 )
+
+top["Full_Label"] = top["HS_Code"].map(
+    lambda x: label_for(x, level, maps)
+)
+top["Display"] = top["HS_Code"].map(
+    lambda x: short_label_for(x, level, maps, max_chars=92)
+)
+top = top.sort_values(value_col)
 
 if top.empty:
     st.info(
@@ -331,7 +297,7 @@ st.caption(
     "نمودار روند بر اساس عمیق‌ترین سطح انتخاب‌شده ساخته می‌شود."
 )
 
-base = df.copy()
+base = df
 
 hs2_options = child_codes(
     base,

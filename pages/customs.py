@@ -2,13 +2,13 @@
 import plotly.express as px
 import streamlit as st
 
-from data_utils import load_parquet, fmt_pct
+from data_utils import load_parquet, load_trade_table, fmt_pct
 from page_utils import (
-    unit_value, metric_column, metric_scaled, chart_layout,
+    metric_column, metric_scaled, chart_layout,
     top_share_cards, hhi_from_values, yoy_from_table, format_number
 )
 
-df_all = unit_value(load_parquet("custom_annual.parquet"))
+df_all = load_trade_table("custom_annual.parquet")
 nat = load_parquet("national_annual.parquet")
 
 st.markdown("""

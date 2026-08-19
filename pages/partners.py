@@ -2,14 +2,14 @@
 import plotly.express as px
 import streamlit as st
 
-from data_utils import load_parquet, fmt_pct
+from data_utils import load_trade_table, fmt_pct
 from page_utils import (
-    unit_value, metric_column, metric_scaled, chart_layout,
+    metric_column, metric_scaled, chart_layout,
     top_share_cards, hhi_from_values, yoy_from_table, format_number
 )
 
-ir = unit_value(load_parquet("country_annual.parquet"))
-b = unit_value(load_parquet("bushehr_country_annual.parquet"))
+ir = load_trade_table("country_annual.parquet")
+b = load_trade_table("bushehr_country_annual.parquet")
 
 st.markdown("""
 <div class="trade-hero">

@@ -150,24 +150,22 @@ def deepest_selected(hs2=None, hs4=None, hs6=None, hs8=None):
 
 
 def child_codes(hierarchy, level, parent_code=None):
+    """Return available child codes without copying the full hierarchy slice.
+
+    ``load_trade_table`` normalizes ``HS_Code`` to pandas string dtype once, so
+    this helper can stay cheap during Streamlit reruns.
+    """
     if hierarchy is None or hierarchy.empty:
         return []
 
     if "HS_Level" not in hierarchy.columns or "HS_Code" not in hierarchy.columns:
         return []
 
-    x = hierarchy[hierarchy["HS_Level"].eq(level)].copy()
+    codes = hierarchy.loc[hierarchy["HS_Level"].eq(level), "HS_Code"].dropna()
+    if not pd.api.types.is_string_dtype(codes.dtype):
+        codes = codes.astype("string")
 
     if parent_code:
-        x = x[
-            x["HS_Code"]
-            .astype(str)
-            .str.startswith(str(parent_code))
-        ]
+        codes = codes[codes.str.startswith(str(parent_code), na=False)]
 
-    return sorted(
-        x["HS_Code"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
+    return sorted(codes.unique().tolist())

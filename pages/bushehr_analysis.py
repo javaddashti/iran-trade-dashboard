@@ -5,40 +5,28 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from data_utils import (
-    load_parquet,
+    load_trade_table,
+    load_hs_reference_bundle,
     fmt_pct,
     fmt_usd_billion,
 )
 from page_utils import (
-    unit_value,
     chart_layout,
     top_share_cards,
 )
 from hs_helpers import (
-    make_reference_maps,
     label_for,
     short_label_for,
 )
 
-nat = unit_value(
-    load_parquet("national_annual.parquet")
-)
-b = unit_value(
-    load_parquet("bushehr_annual.parquet")
-)
-bc = unit_value(
-    load_parquet("bushehr_country_annual.parquet")
-)
+nat = load_trade_table("national_annual.parquet")
+b = load_trade_table("bushehr_annual.parquet")
+bc = load_trade_table("bushehr_country_annual.parquet")
 
-hs_ir = unit_value(
-    load_parquet("hs_hierarchy_national.parquet")
-)
-hs_b = unit_value(
-    load_parquet("hs_hierarchy_bushehr.parquet")
-)
+hs_ir = load_trade_table("hs_hierarchy_national.parquet")
+hs_b = load_trade_table("hs_hierarchy_bushehr.parquet")
 
-ref = load_parquet("hs_reference.parquet")
-maps = make_reference_maps(ref)
+ref, maps = load_hs_reference_bundle()
 
 st.markdown(
     """
@@ -402,39 +390,14 @@ lq = lq[
       .notna()
 ].copy()
 
-lq["Full_Label"] = (
-    lq["HS_Code"]
-    .astype(str)
-    .map(
-        lambda x: label_for(
-            x,
-            lq_level,
-            maps,
-        )
-    )
+lq = lq.nlargest(15, "LQ").copy()
+lq["Full_Label"] = lq["HS_Code"].map(
+    lambda x: label_for(x, lq_level, maps)
 )
-
-lq["Display"] = (
-    lq["HS_Code"]
-    .astype(str)
-    .map(
-        lambda x: short_label_for(
-            x,
-            lq_level,
-            maps,
-            max_chars=92,
-        )
-    )
+lq["Display"] = lq["HS_Code"].map(
+    lambda x: short_label_for(x, lq_level, maps, max_chars=92)
 )
-
-lq = (
-    lq
-    .nlargest(
-        15,
-        "LQ",
-    )
-    .sort_values("LQ")
-)
+lq = lq.sort_values("LQ")
 
 if not lq.empty:
     fig_lq = px.bar(
@@ -502,41 +465,14 @@ detail = hs_b[
     & hs_b["HS_Level"].eq(detail_level)
 ].copy()
 
-detail["Full_Label"] = (
-    detail["HS_Code"]
-    .astype(str)
-    .map(
-        lambda x: label_for(
-            x,
-            detail_level,
-            maps,
-        )
-    )
+detail = detail.nlargest(15, "Dollar_Value").copy()
+detail["Full_Label"] = detail["HS_Code"].map(
+    lambda x: label_for(x, detail_level, maps)
 )
-
-detail["Display"] = (
-    detail["HS_Code"]
-    .astype(str)
-    .map(
-        lambda x: short_label_for(
-            x,
-            detail_level,
-            maps,
-            max_chars=94,
-        )
-    )
+detail["Display"] = detail["HS_Code"].map(
+    lambda x: short_label_for(x, detail_level, maps, max_chars=94)
 )
-
-detail = (
-    detail
-    .nlargest(
-        15,
-        "Dollar_Value",
-    )
-    .sort_values(
-        "Dollar_Value"
-    )
-)
+detail = detail.sort_values("Dollar_Value")
 
 if not detail.empty:
     fig_d = px.bar(

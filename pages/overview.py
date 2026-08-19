@@ -251,7 +251,12 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab_value, tab_weight, tab_unit = st.tabs(["ارزش دلاری", "وزن", "ارزش هر تن"])
+display_metric = st.radio(
+    "معیار نمودار",
+    ["ارزش دلاری", "وزن", "ارزش هر تن"],
+    horizontal=True,
+    key="overview_bushehr_metric",
+)
 
 bp = (
     bdf.pivot_table(
@@ -263,44 +268,42 @@ bp = (
     .sort_index()
 )
 
-with tab_value:
-    fig_v = go.Figure()
-    for flow in ["صادرات", "واردات"]:
-        if ("Dollar_Value", flow) in bp.columns:
-            fig_v.add_trace(
+if display_metric == "ارزش دلاری":
+    fig_metric = go.Figure()
+    for flow_name in ["صادرات", "واردات"]:
+        if ("Dollar_Value", flow_name) in bp.columns:
+            fig_metric.add_trace(
                 go.Scatter(
                     x=bp.index,
-                    y=bp[("Dollar_Value", flow)] / 1e9,
+                    y=bp[("Dollar_Value", flow_name)] / 1e9,
                     mode="lines+markers",
-                    name=flow,
+                    name=flow_name,
                 )
             )
-    fig_v = chart_layout(fig_v, height=410, y_title="میلیارد دلار")
-    st.plotly_chart(fig_v, use_container_width=True)
+    fig_metric = chart_layout(fig_metric, height=410, y_title="میلیارد دلار")
+    st.plotly_chart(fig_metric, use_container_width=True)
 
-with tab_weight:
-    fig_w = go.Figure()
-    for flow in ["صادرات", "واردات"]:
-        if ("Weight_kg", flow) in bp.columns:
-            fig_w.add_trace(
+elif display_metric == "وزن":
+    fig_metric = go.Figure()
+    for flow_name in ["صادرات", "واردات"]:
+        if ("Weight_kg", flow_name) in bp.columns:
+            fig_metric.add_trace(
                 go.Scatter(
                     x=bp.index,
-                    y=bp[("Weight_kg", flow)] / 1e9,
+                    y=bp[("Weight_kg", flow_name)] / 1e9,
                     mode="lines+markers",
-                    name=flow,
+                    name=flow_name,
                 )
             )
-    fig_w = chart_layout(fig_w, height=410, y_title="میلیون تن")
-    st.plotly_chart(fig_w, use_container_width=True)
+    fig_metric = chart_layout(fig_metric, height=410, y_title="میلیون تن")
+    st.plotly_chart(fig_metric, use_container_width=True)
 
-with tab_unit:
+else:
     unit = pd.DataFrame(index=bp.index)
-    for flow in ["صادرات", "واردات"]:
-        if ("Dollar_Value", flow) in bp.columns and ("Weight_kg", flow) in bp.columns:
-            unit[flow] = (
-                bp[("Dollar_Value", flow)]
-                / (bp[("Weight_kg", flow)] / 1000.0)
-            )
+    for flow_name in ["صادرات", "واردات"]:
+        if ("Dollar_Value", flow_name) in bp.columns and ("Weight_kg", flow_name) in bp.columns:
+            denom = bp[("Weight_kg", flow_name)] / 1000.0
+            unit[flow_name] = bp[("Dollar_Value", flow_name)].where(denom.gt(0)) / denom.where(denom.gt(0))
 
     selected_u_exp = unit.loc[selected_year, "صادرات"] if selected_year in unit.index and "صادرات" in unit.columns else float("nan")
     selected_u_imp = unit.loc[selected_year, "واردات"] if selected_year in unit.index and "واردات" in unit.columns else float("nan")
@@ -311,19 +314,19 @@ with tab_unit:
     uc2.metric("ارزش هر تن واردات", fmt_usd_per_ton(selected_u_imp))
     uc3.metric("نسبت ارزش واحد صادرات به واردات", fmt_pct(ratio))
 
-    fig_u = go.Figure()
-    for flow in ["صادرات", "واردات"]:
-        if flow in unit.columns:
-            fig_u.add_trace(
+    fig_metric = go.Figure()
+    for flow_name in ["صادرات", "واردات"]:
+        if flow_name in unit.columns:
+            fig_metric.add_trace(
                 go.Scatter(
                     x=unit.index,
-                    y=unit[flow],
+                    y=unit[flow_name],
                     mode="lines+markers",
-                    name=flow,
+                    name=flow_name,
                 )
             )
-    fig_u = chart_layout(fig_u, height=410, y_title="دلار به ازای هر تن")
-    st.plotly_chart(fig_u, use_container_width=True)
+    fig_metric = chart_layout(fig_metric, height=410, y_title="دلار به ازای هر تن")
+    st.plotly_chart(fig_metric, use_container_width=True)
 
 st.divider()
 
@@ -342,9 +345,14 @@ flow_choice = st.radio(
     key="structure_flow",
 )
 
-partner_tab, hs_tab = st.tabs(["شرکای تجاری", "گروه‌های کالایی HS2"])
+structure_view = st.radio(
+    "نوع رتبه‌بندی",
+    ["شرکای تجاری", "گروه‌های کالایی HS2"],
+    horizontal=True,
+    key="overview_structure_view",
+)
 
-with partner_tab:
+if structure_view == "شرکای تجاری":
     if selected_year == 1394 and flow_choice == "صادرات":
         st.warning(
             "در منبع صادرات سال ۱۳۹۴ که در کد پاک‌سازی استفاده شده، "
@@ -359,8 +367,8 @@ with partner_tab:
 
     x = x.sort_values("Dollar_Value", ascending=False)
     total_x = x["Dollar_Value"].sum()
-
     top = x.head(10).sort_values("Dollar_Value")
+
     if top.empty:
         st.info("برای این انتخاب داده‌ای در دسترس نیست.")
     else:
@@ -381,7 +389,7 @@ with partner_tab:
         m2.metric("سهم ۵ شریک نخست", fmt_pct(100 * x.head(5)["Dollar_Value"].sum() / total_x if total_x else None))
         m3.metric("سهم ۱۰ شریک نخست", fmt_pct(100 * x.head(10)["Dollar_Value"].sum() / total_x if total_x else None))
 
-with hs_tab:
+else:
     if selected_year == 1394 and flow_choice == "صادرات":
         st.warning(
             "در منبع صادرات سال ۱۳۹۴ که در کد پاک‌سازی استفاده شده، "
