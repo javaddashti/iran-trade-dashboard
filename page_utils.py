@@ -93,11 +93,20 @@ def metric_card(container, label, value, delta=None):
         delta_html = (f'<div class="{delta_cls}"><span aria-hidden="true">{arrow}</span>'
                       f'<span dir="auto">{html.escape(raw_delta)}</span></div>')
 
-    content = f"""<div class="trade-kpi" role="group" aria-label="{safe_label}: {html.escape(raw)}">
-      <div class="trade-kpi-label">{safe_label}</div>
-      <div class="trade-kpi-value"><bdi dir="ltr" class="trade-kpi-number">{safe_number}</bdi>{unit_html}</div>
-      {delta_html}
-    </div>"""
+    # Keep the HTML on a single logical line. In Markdown, a blank line
+    # before an indented closing </div> may terminate the raw HTML block and
+    # render the closing tag as a visible code block (especially when delta
+    # is omitted). This makes cards work with or without a delta indicator.
+    content = (
+        f'<div class="trade-kpi" role="group" '
+        f'aria-label="{safe_label}: {html.escape(raw)}">'
+        f'<div class="trade-kpi-label">{safe_label}</div>'
+        f'<div class="trade-kpi-value">'
+        f'<bdi dir="ltr" class="trade-kpi-number">{safe_number}</bdi>'
+        f'{unit_html}</div>'
+        f'{delta_html}'
+        '</div>'
+    )
     container.markdown(content, unsafe_allow_html=True)
 
 
