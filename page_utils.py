@@ -64,52 +64,33 @@ def metric_scaled(series, metric):
         return series, "کیلوگرم"
     return series, "دلار به ازای هر تن"
 
+# This marker helps verify that the intended file is installed locally and on GitHub.
+METRIC_CARD_RENDERER = "native-v3-no-html"
+
+
 def metric_card(container, label, value, delta=None):
-    """Show a responsive Persian metric card without Streamlit's ellipsis.
+    """Render a KPI as native Streamlit widgets, not embedded HTML.
 
-    Numeric text and its unit are separate elements so neither is cropped in
-    narrow five-column layouts. Input strings retain their existing units and
-    precision; this function only changes their presentation.
+    The older HTML implementation sometimes leaked a literal </div> into
+    Markdown output for cards without a delta. This implementation contains
+    no HTML tags at all, so that failure mode is impossible. It preserves
+    all label/value/delta strings and uses a bordered native container.
     """
-    raw = str(value) if value is not None else "—"
-    match = re.match(r"^([+−-]?[0-9۰-۹][0-9۰-۹,.٫٬]*)\s*(.*)$", raw.strip())
-    if match:
-        number, unit = match.groups()
-    else:
-        number, unit = raw.strip(), ""
+    raw_label = str(label) if label is not None else ""
+    raw_value = str(value) if value is not None else "—"
 
-    safe_label = html.escape(str(label))
-    safe_number = html.escape(number)
-    safe_unit = html.escape(unit)
-    unit_html = (f'<span class="trade-kpi-unit" dir="rtl">{safe_unit}</span>'
-                 if unit else "")
+    # st.columns objects are DeltaGenerators and support .container().
+    card = container.container(border=True)
+    card.markdown(f"**{raw_label}**")
+    card.markdown(f"### {raw_value}")
 
-    delta_html = ""
-    if delta is not None and str(delta).strip() not in ("", "—", "nan", "None"):
+    if delta is not None:
         raw_delta = str(delta).strip()
-        downward = raw_delta.startswith(("-", "−"))
-        arrow = "↓" if downward else "↑"
-        delta_cls = "trade-kpi-delta negative" if downward else "trade-kpi-delta positive"
-        delta_html = (f'<div class="{delta_cls}"><span aria-hidden="true">{arrow}</span>'
-                      f'<span dir="auto">{html.escape(raw_delta)}</span></div>')
-
-    # Keep the HTML on a single logical line. In Markdown, a blank line
-    # before an indented closing </div> may terminate the raw HTML block and
-    # render the closing tag as a visible code block (especially when delta
-    # is omitted). This makes cards work with or without a delta indicator.
-    content = (
-        f'<div class="trade-kpi" role="group" '
-        f'aria-label="{safe_label}: {html.escape(raw)}">'
-        f'<div class="trade-kpi-label">{safe_label}</div>'
-        f'<div class="trade-kpi-value">'
-        f'<bdi dir="ltr" class="trade-kpi-number">{safe_number}</bdi>'
-        f'{unit_html}</div>'
-        f'{delta_html}'
-        '</div>'
-    )
-    # Streamlit >= 1.40 (requirements.txt) supports st.html on column containers.
-    # Render the HTML directly, bypassing Markdown parsing completely.
-    container.html(content)
+        if raw_delta not in ("", "—", "nan", "None"):
+            downward = raw_delta.startswith(("-", "−"))
+            color = "red" if downward else "green"
+            arrow = "↓" if downward else "↑"
+            card.markdown(f":{color}[{arrow} {raw_delta}]")
 
 
 def _axis_label(label, *, long=False):
