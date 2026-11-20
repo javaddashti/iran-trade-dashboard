@@ -1,3 +1,4 @@
+from persian_display import fa_digits, persianize_figure
 
 import plotly.express as px
 import streamlit as st
@@ -34,7 +35,7 @@ with c2:
 with c3:
     metric = st.selectbox("معیار", ["ارزش دلاری","وزن"])
 with c4:
-    year = st.selectbox("سال منتخب", years, index=len(years)-1)
+    year = st.selectbox("سال منتخب", years, index=len(years)-1, format_func=fa_digits)
 
 if geography == "ایران":
     df = ir[ir["Flow"].eq(flow)].copy()
@@ -55,7 +56,7 @@ snap = (
 )
 
 st.markdown(
-    f'<div class="section-title">شرکای اصلی {flow} {title_geo} در سال {year}</div>',
+    f'<div class="section-title">شرکای اصلی {flow} {title_geo} در سال {fa_digits(year)}</div>',
     unsafe_allow_html=True,
 )
 
@@ -70,7 +71,8 @@ if not top.empty:
     fig = chart_layout(fig, height=610, hovermode="closest")
     fig = horizontal_bar_layout(fig, top["Country"])
     fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        persianize_figure(fig), use_container_width=True)
 
 s3,s5,s10 = top_share_cards(snap, value_col=value_col)
 hhi = hhi_from_values(snap[value_col])
@@ -97,7 +99,8 @@ if not trend.empty:
     )
     fig_t = chart_layout(fig_t, height=470, y_title=lab)
     fig_t = fix_year_axis(fig_t, trend["Year"])
-    st.plotly_chart(fig_t, use_container_width=True)
+    st.plotly_chart(
+        persianize_figure(fig_t), use_container_width=True)
 
 st.divider()
 st.markdown('<div class="section-title">پروفایل یک شریک تجاری</div>', unsafe_allow_html=True)

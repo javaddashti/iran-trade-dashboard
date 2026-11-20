@@ -7,6 +7,8 @@ import textwrap
 import numpy as np
 import pandas as pd
 
+from persian_display import fa_digits, fa_number
+
 _RLI = "\u2067"
 _PDI = "\u2069"
 
@@ -64,33 +66,101 @@ def metric_scaled(series, metric):
         return series, "کیلوگرم"
     return series, "دلار به ازای هر تن"
 
-# This marker helps verify that the intended file is installed locally and on GitHub.
-METRIC_CARD_RENDERER = "native-v3-no-html"
+# Marker for verifying the patch in local VS Code / GitHub.
+METRIC_CARD_RENDERER = "compact-v5-persian-digits"
+
+
+def _split_metric_value(value):
+    """Keep the numeric part and unit separate, with a compact percentage case."""
+    raw = "—" if value is None else str(value).strip()
+    if not raw:
+        return "—", "", False
+    match = re.fullmatch(r"([+\-−]?[0-9۰-۹٠-٩][0-9۰-۹٠-٩,.٫٬]*)\s*([٪%])", raw)
+    if match:
+        return match.group(1), match.group(2), True
+    match = re.match(r"^([+\-−]?[0-9۰-۹٠-٩][0-9۰-۹٠-٩,.٫٬]*)\s*(.*)$", raw)
+    if match:
+        return match.group(1), match.group(2).strip(), False
+    return raw, "", False
 
 
 def metric_card(container, label, value, delta=None):
-    """Render a KPI as native Streamlit widgets, not embedded HTML.
+    """Compact responsive KPI matching the original design, without Markdown.
 
-    The older HTML implementation sometimes leaked a literal </div> into
-    Markdown output for cards without a delta. This implementation contains
-    no HTML tags at all, so that failure mode is impossible. It preserves
-    all label/value/delta strings and uses a bordered native container.
+    The previous native Streamlit version fixed leaked closing tags but used an
+    H3 heading, so both numeric values and units inherited oversized heading
+    typography.  This version renders *one HTML fragment* through st.html,
+    entirely bypassing the Markdown parser that caused literal ``</div>``.
+    All user-facing strings are HTML-escaped, and small inline styles isolate
+    the card from changes in Streamlit's theme or global CSS selectors.
     """
-    raw_label = str(label) if label is not None else ""
-    raw_value = str(value) if value is not None else "—"
+    safe_label = html.escape("" if label is None else fa_digits(label), quote=True)
+    number, unit, is_percentage = _split_metric_value(value)
+    raw_value = "—" if value is None else fa_digits(value)
+    safe_number = html.escape(fa_digits(number))
+    safe_unit = html.escape(fa_digits(unit))
 
-    # st.columns objects are DeltaGenerators and support .container().
-    card = container.container(border=True)
-    card.markdown(f"**{raw_label}**")
-    card.markdown(f"### {raw_value}")
+    # Five-column layouts have only ~180px per card. Scale very long numbers a bit.
+    number_size = "1.28rem" if len(number) > 8 else "1.52rem"
 
-    if delta is not None:
-        raw_delta = str(delta).strip()
-        if raw_delta not in ("", "—", "nan", "None"):
-            downward = raw_delta.startswith(("-", "−"))
-            color = "red" if downward else "green"
-            arrow = "↓" if downward else "↑"
-            card.markdown(f":{color}[{arrow} {raw_delta}]")
+    if is_percentage:
+        # The number and percentage sign stay in one LTR bidi-isolated group.
+        formatted_value = (
+            f'<bdi dir="ltr" style="font-size:{number_size};font-weight:800;'
+            f'line-height:1.35;white-space:nowrap;color:#172033;'
+            f'font-variant-numeric:tabular-nums">{safe_number}{safe_unit}</bdi>'
+        )
+    else:
+        formatted_value = (
+            f'<bdi dir="ltr" style="font-size:{number_size};font-weight:800;'
+            f'line-height:1.35;white-space:nowrap;color:#172033;'
+            f'font-variant-numeric:tabular-nums">{safe_number}</bdi>'
+        )
+        if unit:
+            formatted_value += (
+                f'<small dir="rtl" style="font-size:0.79rem;line-height:1.55;'
+                f'font-weight:500;color:#334155;white-space:normal;'
+                f'overflow-wrap:normal">{safe_unit}</small>'
+            )
+
+    delta_html = ""
+    if delta is not None and str(delta).strip() not in ("", "—", "nan", "None"):
+        raw_delta = fa_digits(str(delta).strip())
+        negative = raw_delta.startswith(("-", "−"))
+        fg, bg = ("#b42318", "#fff1f0") if negative else ("#176b50", "#eef9f3")
+        arrow = "↓" if negative else "↑"
+        # Delta may contain Persian units; keep the text itself RTL, numeric
+        # runs stay visually stable under the outer bidi isolation.
+        delta_html = (
+            f'<div dir="rtl" style="margin-top:auto;align-self:flex-start;'
+            f'display:inline-flex;align-items:center;gap:4px;max-width:100%;'
+            f'background:{bg};color:{fg};border-radius:99px;padding:3px 8px;'
+            f'font-size:0.74rem;font-weight:600;line-height:1.4;'
+            f'white-space:normal"><span aria-hidden="true">{arrow}</span>'
+            f'<bdi dir="auto">{html.escape(raw_delta)}</bdi></div>'
+        )
+
+    content = (
+        f'<div class="trade-kpi-compact" dir="rtl" role="group" '
+        f'aria-label="{safe_label}: {html.escape(raw_value, quote=True)}" '
+        f'style="box-sizing:border-box;width:100%;min-height:132px;'
+        f'padding:14px 14px 13px;border:1px solid #e7ebef;'
+        f'border-radius:17px;background:#fff;'
+        f'box-shadow:0 2px 8px rgba(15,23,42,.025);'
+        f'display:flex;flex-direction:column;align-items:flex-start;'
+        f'justify-content:flex-start;gap:8px;direction:rtl;text-align:right;'
+        f'font-family:Vazirmatn,Tahoma,Arial,sans-serif">'
+        f'<div style="font-size:0.89rem;font-weight:600;line-height:1.65;'
+        f'color:#172033;overflow-wrap:break-word">{safe_label}</div>'
+        f'<div dir="rtl" style="display:flex;flex-wrap:wrap;'
+        f'align-items:baseline;justify-content:flex-start;column-gap:5px;'
+        f'row-gap:0;min-width:0;width:100%;direction:rtl;'
+        f'text-align:right">{formatted_value}</div>'
+        f'{delta_html}</div>'
+    )
+    # st.html / container.html renders one complete fragment directly, not via
+    # Markdown; this prevents a closing tag from becoming a visible code block.
+    container.html(content)
 
 
 def _axis_label(label, *, long=False):
@@ -100,7 +170,7 @@ def _axis_label(label, *, long=False):
         return ""
     if not long:
         # Right-to-left marker prevents country/custom names being mirrored.
-        return "\u200f" + html.escape(label)
+        return "\u200f" + html.escape(fa_digits(label))
 
     # A readable two-line abbreviation is necessary for long HS descriptions.
     # The underlying category remains intact and Plotly hover retains full text.
@@ -109,7 +179,7 @@ def _axis_label(label, *, long=False):
     if len(parts) > 2:
         parts = parts[:2]
         parts[1] = parts[1].rstrip(" ،؛—-") + "…"
-    return "<br>".join("\u200f" + html.escape(x) for x in parts)
+    return "<br>".join("\u200f" + html.escape(fa_digits(x)) for x in parts)
 
 
 def horizontal_bar_layout(fig, categories, *, long=False):
@@ -150,7 +220,7 @@ def fix_year_axis(fig, years):
         type="linear",
         tickmode="array",
         tickvals=ticks,
-        ticktext=[str(y) for y in ticks],
+        ticktext=[fa_digits(str(y)) for y in ticks],
         tickangle=0,
         automargin=True,
         title_text="سال",
@@ -229,7 +299,7 @@ def format_number(value, metric):
     if value is None or pd.isna(value):
         return "—"
     if metric == "ارزش دلاری":
-        return f"{value / 1e9:,.2f} میلیارد دلار"
+        return fa_digits(f"{value / 1e9:,.2f} میلیارد دلار")
     if metric == "وزن":
-        return f"{value / 1e9:,.2f} میلیون تن"
-    return f"{value:,.0f} دلار/تن"
+        return fa_digits(f"{value / 1e9:,.2f} میلیون تن")
+    return fa_digits(f"{value:,.0f} دلار/تن")

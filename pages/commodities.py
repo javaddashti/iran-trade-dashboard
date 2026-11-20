@@ -1,3 +1,4 @@
+from persian_display import fa_digits, persianize_figure
 
 import pandas as pd
 import plotly.express as px
@@ -64,6 +65,7 @@ with c3:
         "سال منتخب",
         years,
         index=len(years) - 1,
+        format_func=fa_digits,
     )
 
 with c4:
@@ -99,8 +101,8 @@ if flow == "صادرات" and year == 1394:
     )
 
 st.caption(
-    "عناوین HS4 و HS6 بر اساس کتاب مقررات صادرات و واردات ۱۳۹۶ است. "
-    "شرح HS8 از مرجع dd.xlsx پروژه استفاده می‌شود و در نبود آن از کتاب ۱۳۹۶ تکمیل می‌شود."
+    "عناوین HS۴ و HS۶ بر اساس کتاب مقررات صادرات و واردات ۱۳۹۶ است. "
+    "شرح HS۸ از مرجع dd.xlsx پروژه استفاده می‌شود و در نبود آن از کتاب ۱۳۹۶ تکمیل می‌شود."
 )
 
 # ---------------------------------------------------
@@ -117,12 +119,13 @@ with r1:
     level = st.selectbox(
         "سطح HS",
         ["HS2", "HS4", "HS6", "HS8"],
+        format_func=fa_digits,
     )
 
 with r2:
     st.caption(
-        "HS2 تصویر کلی سبد کالا را می‌دهد؛ "
-        "HS8 دقیق‌ترین تعرفه موجود در داده است."
+        "HS۲ تصویر کلی سبد کالا را می‌دهد؛ "
+        "HS۸ دقیق‌ترین تعرفه موجود در داده است."
     )
 
 parent_hs2 = None
@@ -140,7 +143,7 @@ if level in ["HS4", "HS6", "HS8"]:
         format_func=lambda x: (
             "همه فصل‌ها"
             if x is None
-            else label_for(x, "HS2", maps)
+            else fa_digits(label_for(x, "HS2", maps))
         ),
         key="rank_hs2",
     )
@@ -153,12 +156,12 @@ if level in ["HS6", "HS8"] and parent_hs2:
     )
 
     parent_hs4 = st.selectbox(
-        "محدود به HS4",
+        "محدود به HS۴",
         options=[None] + hs4_codes,
         format_func=lambda x: (
-            "همه HS4ها"
+            "همه HS۴ها"
             if x is None
-            else label_for(x, "HS4", maps)
+            else fa_digits(label_for(x, "HS4", maps))
         ),
         key="rank_hs4",
     )
@@ -171,12 +174,12 @@ if level == "HS8" and parent_hs4:
     )
 
     parent_hs6 = st.selectbox(
-        "محدود به HS6",
+        "محدود به HS۶",
         options=[None] + hs6_codes,
         format_func=lambda x: (
-            "همه HS6ها"
+            "همه HS۶ها"
             if x is None
-            else label_for(x, "HS6", maps)
+            else fa_digits(label_for(x, "HS6", maps))
         ),
         key="rank_hs6",
     )
@@ -196,12 +199,11 @@ if prefix:
 
 value_col = metric_column(metric)
 
-top_n = st.slider(
+top_n = st.select_slider(
     "تعداد اقلام در نمودار",
-    10,
-    30,
-    20,
-    5,
+    options=[10, 15, 20, 25, 30],
+    value=20,
+    format_func=fa_digits,
 )
 
 # Keep only the rows that will actually be plotted before building Persian
@@ -272,7 +274,7 @@ else:
     )
 
     st.plotly_chart(
-        fig,
+        persianize_figure(fig),
         use_container_width=True,
     )
 
@@ -287,7 +289,7 @@ st.markdown(
 )
 
 st.caption(
-    "ابتدا فصل HS2 را انتخاب کنید و در صورت نیاز تا HS8 پایین بروید. "
+    "ابتدا فصل HS۲ را انتخاب کنید و در صورت نیاز تا HS8 پایین بروید. "
     "نمودار روند بر اساس عمیق‌ترین سطح انتخاب‌شده ساخته می‌شود."
 )
 
@@ -299,13 +301,13 @@ hs2_options = child_codes(
 )
 
 d_hs2 = st.selectbox(
-    "HS2 — فصل",
+    "HS۲ — فصل",
     options=hs2_options,
-    format_func=lambda x: label_for(
+    format_func=lambda x: fa_digits(label_for(
         x,
         "HS2",
         maps,
-    ),
+    )),
     key="drill_hs2",
 )
 
@@ -316,16 +318,16 @@ hs4_options = child_codes(
 )
 
 d_hs4 = st.selectbox(
-    "HS4",
+    "HS۴",
     options=[None] + hs4_options,
     format_func=lambda x: (
-        "همه HS4های این فصل"
+        "همه HS۴های این فصل"
         if x is None
-        else label_for(
+        else fa_digits(label_for(
             x,
             "HS4",
             maps,
-        )
+        ))
     ),
     key="drill_hs4",
 )
@@ -341,16 +343,16 @@ if d_hs4:
     )
 
     d_hs6 = st.selectbox(
-        "HS6",
+        "HS۶",
         options=[None] + hs6_options,
         format_func=lambda x: (
-            "همه HS6های این گروه"
+            "همه HS۶های این گروه"
             if x is None
-            else label_for(
+            else fa_digits(label_for(
                 x,
                 "HS6",
                 maps,
-            )
+            ))
         ),
         key="drill_hs6",
     )
@@ -363,16 +365,16 @@ if d_hs6:
     )
 
     d_hs8 = st.selectbox(
-        "HS8 — تعرفه دقیق",
+        "HS۸ — تعرفه دقیق",
         options=[None] + hs8_options,
         format_func=lambda x: (
-            "همه تعرفه‌های HS8 این زیرگروه"
+            "همه تعرفه‌های HS۸ این زیرگروه"
             if x is None
-            else label_for(
+            else fa_digits(label_for(
                 x,
                 "HS8",
                 maps,
-            )
+            ))
         ),
         key="drill_hs8",
     )
@@ -399,7 +401,7 @@ if selected_level and selected_code:
     ]
 
     st.markdown(
-        f"### {label_for(selected_code, selected_level, maps)}"
+        f"### {fa_digits(label_for(selected_code, selected_level, maps))}"
     )
 
     desc = description_for(
@@ -416,7 +418,7 @@ if selected_level and selected_code:
         )
 
         st.info(
-            f"شرح {selected_level}: {desc}\n\n"
+            f"شرح {fa_digits(selected_level)}: {fa_digits(desc)}\n\n"
             f"منبع عنوان: {source_note}"
         )
 
@@ -500,7 +502,7 @@ if selected_level and selected_code:
     )
 
     # Keep the Plotly title short: the complete HS label is displayed below.
-    fig_t.update_layout(title=f"روند کالای {selected_code} ({selected_level})")
+    fig_t.update_layout(title=f"روند کالای {fa_digits(selected_code)} ({fa_digits(selected_level)})")
 
     fig_t = chart_layout(
         fig_t,
@@ -512,8 +514,9 @@ if selected_level and selected_code:
     fig_t.update_layout(showlegend=False)
     fig_t = fix_year_axis(fig_t, selected["Year"])
 
-    st.plotly_chart(fig_t, use_container_width=True)
-    st.caption("شرح کامل کالای انتخاب‌شده: " + label_for(selected_code, selected_level, maps))
+    st.plotly_chart(
+        persianize_figure(fig_t), use_container_width=True)
+    st.caption("شرح کامل کالای انتخاب‌شده: " + fa_digits(label_for(selected_code, selected_level, maps)))
 
 st.caption(
     "ملاحظه طبقه‌بندی: عناوین HS4 و HS6 بر اساس کتاب مقررات صادرات و واردات ۱۳۹۶ هستند. "

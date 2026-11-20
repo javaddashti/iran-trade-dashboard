@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from hs_helpers import make_reference_maps
+from persian_display import fa_digits
 
 PROCESSED_DIR = Path(__file__).resolve().parent / "data" / "processed"
 
@@ -115,22 +116,22 @@ def yoy_pct(current, previous):
 def fmt_usd_billion(value):
     if pd.isna(value):
         return "—"
-    return f"{value / 1e9:,.1f} میلیارد دلار"
+    return fa_digits(f"{value / 1e9:,.1f} میلیارد دلار")
 
 
 def fmt_million_ton(value_kg):
     if pd.isna(value_kg):
         return "—"
-    return f"{value_kg / 1e9:,.1f} میلیون تن"
+    return fa_digits(f"{value_kg / 1e9:,.1f} میلیون تن")
 
 
 def fmt_pct(value):
     if value is None or pd.isna(value):
         return "—"
-    return f"{value:,.1f}٪"
+    return fa_digits(f"{value:,.1f}٪")
 
 
 def fmt_usd_per_ton(value):
     if value is None or pd.isna(value):
         return "—"
-    return f"{value:,.0f} دلار/تن"
+    return fa_digits(f"{value:,.0f} دلار/تن")

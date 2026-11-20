@@ -1,3 +1,4 @@
+from persian_display import fa_digits, persianize_figure, persian_dataframe
 from pathlib import Path
 import re
 
@@ -231,11 +232,11 @@ f1, f2 = st.columns([1, 2])
 with f1:
     flow = st.radio("جریان تجارت", ["صادرات", "واردات"], horizontal=True)
 with f2:
-    year_range = st.slider(
+    year_range = st.select_slider(
         "بازه سال",
-        min_value=min_year,
-        max_value=max_year,
+        options=sorted(int(v) for v in manifest["Year"].unique()),
         value=(min_year, max_year),
+        format_func=fa_digits,
     )
 
 custom_options = distinct_values("Custom", flow, year_range[0], year_range[1])
@@ -277,9 +278,9 @@ hs2_options = distinct_values(
 )
 with h1:
     hs2 = st.multiselect(
-        "HS2",
+        "HS۲",
         options=hs2_options,
-        format_func=lambda x: label_for(x, "HS2", hs_maps),
+        format_func=lambda x: fa_digits(label_for(x, "HS2", hs_maps)),
     )
 
 hs4_options = ()
@@ -295,11 +296,11 @@ if hs2:
     )
 with h2:
     hs4 = st.multiselect(
-        "HS4",
+        "HS۴",
         options=hs4_options,
-        format_func=lambda x: label_for(x, "HS4", hs_maps),
+        format_func=lambda x: fa_digits(label_for(x, "HS4", hs_maps)),
         disabled=not bool(hs2),
-        placeholder="ابتدا HS2 را انتخاب کنید",
+        placeholder="ابتدا HS۲ را انتخاب کنید",
     )
 
 hs6_options = ()
@@ -316,11 +317,11 @@ if hs4:
     )
 with h3:
     hs6 = st.multiselect(
-        "HS6",
+        "HS۶",
         options=hs6_options,
-        format_func=lambda x: label_for(x, "HS6", hs_maps),
+        format_func=lambda x: fa_digits(label_for(x, "HS6", hs_maps)),
         disabled=not bool(hs4),
-        placeholder="ابتدا HS4 را انتخاب کنید",
+        placeholder="ابتدا HS۴ را انتخاب کنید",
     )
 
 hs8_options = ()
@@ -338,11 +339,11 @@ if hs6:
     )
 with h4:
     hs8 = st.multiselect(
-        "HS8",
+        "HS۸",
         options=hs8_options,
-        format_func=lambda x: label_for(x, "HS8", hs_maps),
+        format_func=lambda x: fa_digits(label_for(x, "HS8", hs_maps)),
         disabled=not bool(hs6),
-        placeholder="ابتدا HS6 را انتخاب کنید",
+        placeholder="ابتدا HS۶ را انتخاب کنید",
     )
 
 current_filters = {
@@ -437,7 +438,8 @@ fig = px.line(
 fig.update_layout(title=title)
 fig = chart_layout(fig, height=460, y_title=y_label)
 fig = fix_year_axis(fig, plot_df["Year"])
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(
+        persianize_figure(fig), use_container_width=True)
 
 # ---------------------------------------------------
 # Table
@@ -460,7 +462,7 @@ show = table[
     ]
 ].rename(columns={"Year": "سال"})
 
-st.dataframe(show, use_container_width=True, hide_index=True)
+st.dataframe(persian_dataframe(show), use_container_width=True, hide_index=True)
 
 csv_bytes = show.to_csv(index=False).encode("utf-8-sig")
 st.download_button(
@@ -480,4 +482,4 @@ if applied_hs8:
         unsafe_allow_html=True,
     )
     for code in applied_hs8:
-        st.write(f"**{label_for(code, 'HS8', hs_maps)}**")
+        st.write(f"**{fa_digits(label_for(code, 'HS8', hs_maps))}**")

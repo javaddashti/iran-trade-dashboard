@@ -1,3 +1,4 @@
+from persian_display import fa_digits, persianize_figure
 
 import plotly.express as px
 import streamlit as st
@@ -29,7 +30,7 @@ with c1:
 with c2:
     metric = st.selectbox("معیار", ["ارزش دلاری","وزن","ارزش هر تن"])
 with c3:
-    year = st.selectbox("سال منتخب", years, index=len(years)-1)
+    year = st.selectbox("سال منتخب", years, index=len(years)-1, format_func=fa_digits)
 
 df = df_all[df_all["Flow"].eq(flow)].copy()
 value_col = metric_column(metric)
@@ -40,7 +41,7 @@ snap = (
 )
 
 st.markdown(
-    f'<div class="section-title">رتبه‌بندی گمرک‌ها در {flow} سال {year}</div>',
+    f'<div class="section-title">رتبه‌بندی گمرک‌ها در {flow} سال {fa_digits(year)}</div>',
     unsafe_allow_html=True,
 )
 
@@ -55,7 +56,8 @@ if not top.empty:
     fig = chart_layout(fig, height=720, hovermode="closest")
     fig = horizontal_bar_layout(fig, top["Custom"])
     fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        persianize_figure(fig), use_container_width=True)
 
 s3,s5,s10 = top_share_cards(snap, value_col=value_col)
 hhi = hhi_from_values(snap[value_col])
@@ -82,7 +84,8 @@ if not trend.empty:
     )
     fig_t = chart_layout(fig_t, height=500, y_title=lab)
     fig_t = fix_year_axis(fig_t, trend["Year"])
-    st.plotly_chart(fig_t, use_container_width=True)
+    st.plotly_chart(
+        persianize_figure(fig_t), use_container_width=True)
 
 st.divider()
 st.markdown('<div class="section-title">ارزش در برابر وزن گمرک‌ها</div>', unsafe_allow_html=True)
@@ -100,7 +103,8 @@ if not scatter.empty:
         labels={"Weight_mt":"وزن (میلیون تن)","Value_bn":"ارزش (میلیارد دلار)"},
     )
     fig_s = chart_layout(fig_s, height=520, y_title="میلیارد دلار", hovermode="closest")
-    st.plotly_chart(fig_s, use_container_width=True)
+    st.plotly_chart(
+        persianize_figure(fig_s), use_container_width=True)
 
 st.divider()
 st.markdown('<div class="section-title">پروفایل یک گمرک</div>', unsafe_allow_html=True)

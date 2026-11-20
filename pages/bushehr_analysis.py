@@ -1,3 +1,4 @@
+from persian_display import fa_digits, persianize_figure
 
 import pandas as pd
 import plotly.express as px
@@ -63,6 +64,7 @@ with c2:
         "سال منتخب",
         years,
         index=len(years) - 1,
+        format_func=fa_digits,
     )
 
 bd = b[
@@ -153,7 +155,7 @@ fig_share = chart_layout(fig_share, height=450, y_title="درصد از کل کش
 fig_share = fix_year_axis(fig_share, bn["Year"])
 
 st.plotly_chart(
-    fig_share,
+        persianize_figure(fig_share),
     use_container_width=True,
 )
 
@@ -225,14 +227,14 @@ fig_uv = chart_layout(fig_uv, height=450, y_title="دلار به ازای هر �
 fig_uv = fix_year_axis(fig_uv, uv["Year"])
 
 st.plotly_chart(
-    fig_uv,
+        persianize_figure(fig_uv),
     use_container_width=True,
 )
 
 st.divider()
 
 st.markdown(
-    f'<div class="section-title">تمرکز صادرات بوشهر در سال {year}</div>',
+    f'<div class="section-title">تمرکز صادرات بوشهر در سال {fa_digits(year)}</div>',
     unsafe_allow_html=True,
 )
 
@@ -301,7 +303,7 @@ metric_card(f,
 # LQ
 # ---------------------------------------------------
 st.markdown(
-    f'<div class="section-title">تخصص‌یافتگی صادراتی بوشهر در سال {year}</div>',
+    f'<div class="section-title">تخصص‌یافتگی صادراتی بوشهر در سال {fa_digits(year)}</div>',
     unsafe_allow_html=True,
 )
 
@@ -309,15 +311,14 @@ lq_level = st.selectbox(
     "سطح محاسبه LQ",
     ["HS2", "HS4", "HS6", "HS8"],
     index=0,
+    format_func=fa_digits,
 )
 
-min_share = st.slider(
+min_share = st.select_slider(
     "حداقل سهم کالا از صادرات بوشهر برای ورود به رتبه‌بندی",
-    min_value=0.0,
-    max_value=2.0,
+    options=[round(i / 10.0, 1) for i in range(21)],
     value=0.1,
-    step=0.1,
-    format="%.1f%%",
+    format_func=lambda x: fa_digits(f"{x:.1f}٪"),
 )
 
 bb = hs_b[
@@ -429,7 +430,7 @@ if not lq.empty:
     )
 
     st.plotly_chart(
-        fig_lq,
+        persianize_figure(fig_lq),
         use_container_width=True,
     )
 
@@ -437,7 +438,7 @@ if not lq.empty:
 # Main products
 # ---------------------------------------------------
 st.markdown(
-    f'<div class="section-title">کالاهای اصلی صادراتی بوشهر در سال {year}</div>',
+    f'<div class="section-title">کالاهای اصلی صادراتی بوشهر در سال {fa_digits(year)}</div>',
     unsafe_allow_html=True,
 )
 
@@ -450,6 +451,7 @@ detail_level = st.radio(
         "HS8",
     ],
     horizontal=True,
+    format_func=fa_digits,
 )
 
 detail = hs_b[
@@ -504,11 +506,11 @@ if not detail.empty:
     )
 
     st.plotly_chart(
-        fig_d,
+        persianize_figure(fig_d),
         use_container_width=True,
     )
 
 st.caption(
-    "عنوان HS4 و HS6 از کتاب مقررات صادرات و واردات ۱۳۹۶ استخراج شده است. "
-    "شرح HS8 از مرجع dd.xlsx پروژه استفاده می‌شود و در نبود آن از کتاب ۱۳۹۶ تکمیل می‌شود."
+    "عنوان HS۴ و HS۶ از کتاب مقررات صادرات و واردات ۱۳۹۶ استخراج شده است. "
+    "شرح HS۸ از مرجع dd.xlsx پروژه استفاده می‌شود و در نبود آن از کتاب ۱۳۹۶ تکمیل می‌شود."
 )

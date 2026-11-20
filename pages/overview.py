@@ -1,3 +1,4 @@
+from persian_display import fa_digits, persianize_figure
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -77,6 +78,7 @@ with c1:
         "سال منتخب",
         options=years,
         index=len(years) - 1,
+        format_func=fa_digits,
     )
 with c2:
     bushehr_mode = st.radio(
@@ -160,7 +162,8 @@ fig.add_trace(
 fig = chart_layout(fig, height=470, y_title="میلیارد دلار")
 fig = fix_year_axis(fig, trend["Year"])
 fig.update_layout(title="روند صادرات، واردات و تراز تجاری ایران")
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(
+        persianize_figure(fig), use_container_width=True)
 
 st.divider()
 
@@ -221,7 +224,8 @@ for flow in ["صادرات", "واردات"]:
 fig_share = chart_layout(fig_share, height=410, y_title="درصد از کل کشور")
 fig_share = fix_year_axis(fig_share, share_pivot["Year"])
 fig_share.update_layout(title="سهم بوشهر از تجارت گمرکی کشور")
-st.plotly_chart(fig_share, use_container_width=True)
+st.plotly_chart(
+        persianize_figure(fig_share), use_container_width=True)
 
 # ---------------------------
 # Value / Weight / Unit value
@@ -262,7 +266,8 @@ if display_metric == "ارزش دلاری":
             )
     fig_metric = chart_layout(fig_metric, height=410, y_title="میلیارد دلار")
     fig_metric = fix_year_axis(fig_metric, bp.index)
-    st.plotly_chart(fig_metric, use_container_width=True)
+    st.plotly_chart(
+        persianize_figure(fig_metric), use_container_width=True)
 
 elif display_metric == "وزن":
     fig_metric = go.Figure()
@@ -278,7 +283,8 @@ elif display_metric == "وزن":
             )
     fig_metric = chart_layout(fig_metric, height=410, y_title="میلیون تن")
     fig_metric = fix_year_axis(fig_metric, bp.index)
-    st.plotly_chart(fig_metric, use_container_width=True)
+    st.plotly_chart(
+        persianize_figure(fig_metric), use_container_width=True)
 
 else:
     unit = pd.DataFrame(index=bp.index)
@@ -309,7 +315,8 @@ else:
             )
     fig_metric = chart_layout(fig_metric, height=410, y_title="دلار به ازای هر تن")
     fig_metric = fix_year_axis(fig_metric, bp.index)
-    st.plotly_chart(fig_metric, use_container_width=True)
+    st.plotly_chart(
+        persianize_figure(fig_metric), use_container_width=True)
 
 st.divider()
 
@@ -317,7 +324,7 @@ st.divider()
 # Bushehr structure snapshot
 # ---------------------------
 st.markdown(
-    f'<div class="section-title">ساختار تجارت بوشهر در سال {selected_year}</div>',
+    f'<div class="section-title">ساختار تجارت بوشهر در سال {fa_digits(selected_year)}</div>',
     unsafe_allow_html=True,
 )
 
@@ -366,7 +373,8 @@ if structure_view == "شرکای تجاری":
         fig_c = chart_layout(fig_c, height=500, y_title=None)
         fig_c = horizontal_bar_layout(fig_c, top["Country"])
         fig_c.update_layout(showlegend=False, hovermode="closest")
-        st.plotly_chart(fig_c, use_container_width=True)
+        st.plotly_chart(
+        persianize_figure(fig_c), use_container_width=True)
 
         m1, m2, m3 = st.columns(3)
         metric_card(m1, "سهم ۳ شریک نخست", fmt_pct(100 * x.head(3)["Dollar_Value"].sum() / total_x if total_x else None))
@@ -409,7 +417,8 @@ else:
         fig_h = chart_layout(fig_h, height=560, y_title=None)
         fig_h = horizontal_bar_layout(fig_h, top_h["Label"], long=True)
         fig_h.update_layout(showlegend=False, hovermode="closest")
-        st.plotly_chart(fig_h, use_container_width=True)
+        st.plotly_chart(
+        persianize_figure(fig_h), use_container_width=True)
 
         hm1, hm2, hm3 = st.columns(3)
         metric_card(hm1, "سهم ۳ گروه نخست", fmt_pct(100 * h.head(3)["Dollar_Value"].sum() / total_h if total_h else None))
