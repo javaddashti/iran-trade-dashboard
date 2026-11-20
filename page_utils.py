@@ -107,7 +107,9 @@ def metric_card(container, label, value, delta=None):
         f'{delta_html}'
         '</div>'
     )
-    container.markdown(content, unsafe_allow_html=True)
+    # Streamlit >= 1.40 (requirements.txt) supports st.html on column containers.
+    # Render the HTML directly, bypassing Markdown parsing completely.
+    container.html(content)
 
 
 def _axis_label(label, *, long=False):
