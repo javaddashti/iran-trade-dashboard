@@ -171,6 +171,87 @@ def apply_global_style():
             overflow: visible !important;
         }
 
+        /* ---------- Responsive HTML KPI cards (no ellipsis, RTL-safe) ---------- */
+        .trade-kpi {
+            width: 100%;
+            min-height: 154px;
+            padding: 15px 14px;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: var(--panel);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
+            box-sizing: border-box;
+            direction: rtl;
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 8px;
+            overflow: visible;
+        }
+        .trade-kpi-label {
+            font-size: 0.92rem;
+            font-weight: 600;
+            line-height: 1.7;
+            color: var(--ink);
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+        .trade-kpi-value {
+            display: flex;
+            direction: rtl;
+            flex-direction: row;
+            align-items: baseline;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 2px 5px;
+            width: 100%;
+            color: var(--ink);
+            line-height: 1.35;
+            overflow: visible;
+            white-space: normal;
+        }
+        .trade-kpi-number {
+            font-family: var(--font-main);
+            font-weight: 800;
+            font-size: clamp(1.18rem, 1.65vw, 1.72rem);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            unicode-bidi: isolate;
+        }
+        .trade-kpi-unit {
+            font-size: 0.82rem;
+            font-weight: 500;
+            line-height: 1.55;
+            overflow-wrap: normal;
+            white-space: normal;
+        }
+        .trade-kpi-delta {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: auto;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            max-width: 100%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+        .trade-kpi-delta.positive { color: #176b50; background: #eef9f3; }
+        .trade-kpi-delta.negative { color: #b42318; background: #fff1f0; }
+        /* Older Streamlit metric fallback (if one is added later). */
+        [data-testid="stMetricValue"] > div,
+        [data-testid="stMetricValue"] p {
+            white-space: normal !important;
+            text-overflow: clip !important;
+            overflow: visible !important;
+            overflow-wrap: anywhere !important;
+        }
+
         /* ---------- Controls ---------- */
         div[data-testid="stSelectbox"],
         div[data-testid="stMultiSelect"],
@@ -242,6 +323,8 @@ def apply_global_style():
 
         /* ---------- Mobile ---------- */
         @media (max-width: 900px) {
+            .trade-kpi { min-height: 142px; padding: 12px 11px; }
+            .trade-kpi-number { font-size: 1.35rem; }
             .trade-hero-title {
                 font-size: 1.85rem;
             }

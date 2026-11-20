@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from page_utils import metric_card, horizontal_bar_layout, fix_year_axis
 
 from data_utils import (
     load_trade_table,
@@ -89,19 +90,19 @@ ii = val(nat, year, "واردات")
 
 k1, k2, k3, k4, k5 = st.columns(5)
 
-k1.metric(
+metric_card(k1, 
     "صادرات بوشهر",
     fmt_usd_billion(be),
 )
-k2.metric(
+metric_card(k2, 
     "واردات بوشهر",
     fmt_usd_billion(bi),
 )
-k3.metric(
+metric_card(k3, 
     "تراز بوشهر",
     fmt_usd_billion(be - bi),
 )
-k4.metric(
+metric_card(k4, 
     "سهم از صادرات ایران",
     fmt_pct(
         100 * be / ie
@@ -109,7 +110,7 @@ k4.metric(
         else None
     ),
 )
-k5.metric(
+metric_card(k5, 
     "سهم از واردات ایران",
     fmt_pct(
         100 * bi / ii
@@ -148,11 +149,8 @@ fig_share.update_layout(
     title="سهم بوشهر از صادرات و واردات کشور"
 )
 
-fig_share = chart_layout(
-    fig_share,
-    height=450,
-    y_title="درصد از کل کشور",
-)
+fig_share = chart_layout(fig_share, height=450, y_title="درصد از کل کشور")
+fig_share = fix_year_axis(fig_share, bn["Year"])
 
 st.plotly_chart(
     fig_share,
@@ -223,11 +221,8 @@ fig_uv.update_layout(
     title=f"ارزش هر تن {uv_flow}"
 )
 
-fig_uv = chart_layout(
-    fig_uv,
-    height=450,
-    y_title="دلار به ازای هر تن",
-)
+fig_uv = chart_layout(fig_uv, height=450, y_title="دلار به ازای هر تن")
+fig_uv = fix_year_axis(fig_uv, uv["Year"])
 
 st.plotly_chart(
     fig_uv,
@@ -274,30 +269,30 @@ hs = (
 
 a, b1, c1 = st.columns(3)
 
-a.metric(
+metric_card(a, 
     "۳ مقصد نخست",
     fmt_pct(cs[0]),
 )
-b1.metric(
+metric_card(b1, 
     "۵ مقصد نخست",
     fmt_pct(cs[1]),
 )
-c1.metric(
+metric_card(c1, 
     "۱۰ مقصد نخست",
     fmt_pct(cs[2]),
 )
 
 d, e, f = st.columns(3)
 
-d.metric(
+metric_card(d, 
     "۳ گروه HS2 نخست",
     fmt_pct(hs[0]),
 )
-e.metric(
+metric_card(e, 
     "۵ گروه HS2 نخست",
     fmt_pct(hs[1]),
 )
-f.metric(
+metric_card(f, 
     "۱۰ گروه HS2 نخست",
     fmt_pct(hs[2]),
 )
@@ -426,9 +421,8 @@ if not lq.empty:
         hovermode="closest",
     )
 
-    fig_lq.update_layout(
-        showlegend=False,
-    )
+    fig_lq = horizontal_bar_layout(fig_lq, lq["Display"], long=True)
+    fig_lq.update_layout(showlegend=False)
 
     fig_lq.update_yaxes(
         automargin=True,
@@ -502,9 +496,8 @@ if not detail.empty:
         hovermode="closest",
     )
 
-    fig_d.update_layout(
-        showlegend=False,
-    )
+    fig_d = horizontal_bar_layout(fig_d, detail["Display"], long=True)
+    fig_d.update_layout(showlegend=False)
 
     fig_d.update_yaxes(
         automargin=True,

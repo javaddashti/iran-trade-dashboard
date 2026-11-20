@@ -2,6 +2,7 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from page_utils import metric_card, horizontal_bar_layout, fix_year_axis
 
 from data_utils import load_trade_table, load_hs_reference_bundle, fmt_pct
 from page_utils import (
@@ -259,19 +260,12 @@ else:
 
     fig = chart_layout(
         fig,
-        height=max(520, top_n * 31),
+        height=max(580, top_n * 38),
         hovermode="closest",
     )
 
-    fig.update_layout(
-        showlegend=False,
-        margin=dict(
-            l=48,
-            r=48,
-            t=66,
-            b=38,
-        ),
-    )
+    fig = horizontal_bar_layout(fig, top["Display"], long=True)
+    fig.update_layout(showlegend=False)
 
     fig.update_yaxes(
         automargin=True,
@@ -445,7 +439,7 @@ if selected_level and selected_code:
 
         k1, k2, k3, k4 = st.columns(4)
 
-        k1.metric(
+        metric_card(k1, 
             "ارزش دلاری",
             format_number(
                 row["Dollar_Value"],
@@ -453,7 +447,7 @@ if selected_level and selected_code:
             ),
         )
 
-        k2.metric(
+        metric_card(k2, 
             "وزن",
             format_number(
                 row["Weight_kg"],
@@ -461,7 +455,7 @@ if selected_level and selected_code:
             ),
         )
 
-        k3.metric(
+        metric_card(k3, 
             "ارزش هر تن",
             format_number(
                 row["Unit_Value"],
@@ -469,7 +463,7 @@ if selected_level and selected_code:
             ),
         )
 
-        k4.metric(
+        metric_card(k4, 
             "سهم از تجارت در همین سطح",
             fmt_pct(share),
         )
@@ -505,11 +499,8 @@ if selected_level and selected_code:
         },
     )
 
-    fig_t.update_layout(
-        title=(
-            f"روند {label_for(selected_code, selected_level, maps)}"
-        )
-    )
+    # Keep the Plotly title short: the complete HS label is displayed below.
+    fig_t.update_layout(title=f"روند کالای {selected_code} ({selected_level})")
 
     fig_t = chart_layout(
         fig_t,
@@ -518,14 +509,11 @@ if selected_level and selected_code:
         hovermode="x unified",
     )
 
-    fig_t.update_layout(
-        showlegend=False,
-    )
+    fig_t.update_layout(showlegend=False)
+    fig_t = fix_year_axis(fig_t, selected["Year"])
 
-    st.plotly_chart(
-        fig_t,
-        use_container_width=True,
-    )
+    st.plotly_chart(fig_t, use_container_width=True)
+    st.caption("شرح کامل کالای انتخاب‌شده: " + label_for(selected_code, selected_level, maps))
 
 st.caption(
     "ملاحظه طبقه‌بندی: عناوین HS4 و HS6 بر اساس کتاب مقررات صادرات و واردات ۱۳۹۶ هستند. "

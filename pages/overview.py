@@ -2,6 +2,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 import streamlit as st
+from page_utils import (
+    metric_card, chart_layout, horizontal_bar_layout, fix_year_axis,
+)
 
 from data_utils import (
     load_parquet,
@@ -49,31 +52,6 @@ def unit_value(value, weight_kg):
     if weight_kg is None or pd.isna(weight_kg) or weight_kg <= 0:
         return float("nan")
     return value / (weight_kg / 1000.0)
-
-def chart_layout(fig, height=430, y_title=None):
-    fig.update_layout(
-        height=height,
-        margin=dict(l=20, r=20, t=45, b=20),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        font=dict(family="Tahoma, Arial, sans-serif", size=13),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1,
-        ),
-        hovermode="x unified",
-    )
-    fig.update_xaxes(showgrid=False)
-    fig.update_yaxes(
-        gridcolor="rgba(0,0,0,0.08)",
-        zeroline=True,
-        zerolinecolor="rgba(0,0,0,0.25)",
-        title=y_title,
-    )
-    return fig
 
 # ---------------------------
 # Hero
@@ -133,14 +111,14 @@ total_prev = (
 )
 
 k1, k2, k3, k4 = st.columns(4)
-k1.metric("صادرات", fmt_usd_billion(exp), fmt_pct(yoy_pct(exp, exp_prev)))
-k2.metric("واردات", fmt_usd_billion(imp), fmt_pct(yoy_pct(imp, imp_prev)))
-k3.metric(
+metric_card(k1, "صادرات", fmt_usd_billion(exp), fmt_pct(yoy_pct(exp, exp_prev)))
+metric_card(k2, "واردات", fmt_usd_billion(imp), fmt_pct(yoy_pct(imp, imp_prev)))
+metric_card(k3, 
     "تراز تجاری",
     fmt_usd_billion(bal),
     None if bal_prev is None else f"{(bal-bal_prev)/1e9:+,.1f} میلیارد دلار",
 )
-k4.metric("حجم کل تجارت", fmt_usd_billion(total), fmt_pct(yoy_pct(total, total_prev)))
+metric_card(k4, "حجم کل تجارت", fmt_usd_billion(total), fmt_pct(yoy_pct(total, total_prev)))
 
 trend = (
     national.pivot_table(
@@ -180,6 +158,7 @@ fig.add_trace(
     )
 )
 fig = chart_layout(fig, height=470, y_title="میلیارد دلار")
+fig = fix_year_axis(fig, trend["Year"])
 fig.update_layout(title="روند صادرات، واردات و تراز تجاری ایران")
 st.plotly_chart(fig, use_container_width=True)
 
@@ -205,11 +184,11 @@ share_exp = 100 * b_exp / exp if exp else float("nan")
 share_imp = 100 * b_imp / imp if imp else float("nan")
 
 bk1, bk2, bk3, bk4, bk5 = st.columns(5)
-bk1.metric("صادرات بوشهر", fmt_usd_billion(b_exp), fmt_pct(yoy_pct(b_exp, b_exp_prev)))
-bk2.metric("واردات بوشهر", fmt_usd_billion(b_imp), fmt_pct(yoy_pct(b_imp, b_imp_prev)))
-bk3.metric("تراز تجاری بوشهر", fmt_usd_billion(b_bal))
-bk4.metric("سهم از صادرات ایران", fmt_pct(share_exp))
-bk5.metric("سهم از واردات ایران", fmt_pct(share_imp))
+metric_card(bk1, "صادرات بوشهر", fmt_usd_billion(b_exp), fmt_pct(yoy_pct(b_exp, b_exp_prev)))
+metric_card(bk2, "واردات بوشهر", fmt_usd_billion(b_imp), fmt_pct(yoy_pct(b_imp, b_imp_prev)))
+metric_card(bk3, "تراز تجاری بوشهر", fmt_usd_billion(b_bal))
+metric_card(bk4, "سهم از صادرات ایران", fmt_pct(share_exp))
+metric_card(bk5, "سهم از واردات ایران", fmt_pct(share_imp))
 
 # ---------------------------
 # Bushehr share trend
@@ -240,6 +219,7 @@ for flow in ["صادرات", "واردات"]:
             )
         )
 fig_share = chart_layout(fig_share, height=410, y_title="درصد از کل کشور")
+fig_share = fix_year_axis(fig_share, share_pivot["Year"])
 fig_share.update_layout(title="سهم بوشهر از تجارت گمرکی کشور")
 st.plotly_chart(fig_share, use_container_width=True)
 
@@ -281,6 +261,7 @@ if display_metric == "ارزش دلاری":
                 )
             )
     fig_metric = chart_layout(fig_metric, height=410, y_title="میلیارد دلار")
+    fig_metric = fix_year_axis(fig_metric, bp.index)
     st.plotly_chart(fig_metric, use_container_width=True)
 
 elif display_metric == "وزن":
@@ -296,6 +277,7 @@ elif display_metric == "وزن":
                 )
             )
     fig_metric = chart_layout(fig_metric, height=410, y_title="میلیون تن")
+    fig_metric = fix_year_axis(fig_metric, bp.index)
     st.plotly_chart(fig_metric, use_container_width=True)
 
 else:
@@ -310,9 +292,9 @@ else:
     ratio = 100 * selected_u_exp / selected_u_imp if selected_u_imp and not pd.isna(selected_u_imp) else float("nan")
 
     uc1, uc2, uc3 = st.columns(3)
-    uc1.metric("ارزش هر تن صادرات", fmt_usd_per_ton(selected_u_exp))
-    uc2.metric("ارزش هر تن واردات", fmt_usd_per_ton(selected_u_imp))
-    uc3.metric("نسبت ارزش واحد صادرات به واردات", fmt_pct(ratio))
+    metric_card(uc1, "ارزش هر تن صادرات", fmt_usd_per_ton(selected_u_exp))
+    metric_card(uc2, "ارزش هر تن واردات", fmt_usd_per_ton(selected_u_imp))
+    metric_card(uc3, "نسبت ارزش واحد صادرات به واردات", fmt_pct(ratio))
 
     fig_metric = go.Figure()
     for flow_name in ["صادرات", "واردات"]:
@@ -326,6 +308,7 @@ else:
                 )
             )
     fig_metric = chart_layout(fig_metric, height=410, y_title="دلار به ازای هر تن")
+    fig_metric = fix_year_axis(fig_metric, bp.index)
     st.plotly_chart(fig_metric, use_container_width=True)
 
 st.divider()
@@ -381,13 +364,14 @@ if structure_view == "شرکای تجاری":
         )
         fig_c.update_layout(title=f"۱۰ شریک اصلی {flow_choice} بوشهر")
         fig_c = chart_layout(fig_c, height=500, y_title=None)
+        fig_c = horizontal_bar_layout(fig_c, top["Country"])
         fig_c.update_layout(showlegend=False, hovermode="closest")
         st.plotly_chart(fig_c, use_container_width=True)
 
         m1, m2, m3 = st.columns(3)
-        m1.metric("سهم ۳ شریک نخست", fmt_pct(100 * x.head(3)["Dollar_Value"].sum() / total_x if total_x else None))
-        m2.metric("سهم ۵ شریک نخست", fmt_pct(100 * x.head(5)["Dollar_Value"].sum() / total_x if total_x else None))
-        m3.metric("سهم ۱۰ شریک نخست", fmt_pct(100 * x.head(10)["Dollar_Value"].sum() / total_x if total_x else None))
+        metric_card(m1, "سهم ۳ شریک نخست", fmt_pct(100 * x.head(3)["Dollar_Value"].sum() / total_x if total_x else None))
+        metric_card(m2, "سهم ۵ شریک نخست", fmt_pct(100 * x.head(5)["Dollar_Value"].sum() / total_x if total_x else None))
+        metric_card(m3, "سهم ۱۰ شریک نخست", fmt_pct(100 * x.head(10)["Dollar_Value"].sum() / total_x if total_x else None))
 
 else:
     if selected_year == 1394 and flow_choice == "صادرات":
@@ -422,14 +406,15 @@ else:
             labels={"x": "میلیارد دلار", "Label": ""},
         )
         fig_h.update_layout(title=f"۱۰ گروه کالایی اصلی {flow_choice} بوشهر")
-        fig_h = chart_layout(fig_h, height=520, y_title=None)
+        fig_h = chart_layout(fig_h, height=560, y_title=None)
+        fig_h = horizontal_bar_layout(fig_h, top_h["Label"], long=True)
         fig_h.update_layout(showlegend=False, hovermode="closest")
         st.plotly_chart(fig_h, use_container_width=True)
 
         hm1, hm2, hm3 = st.columns(3)
-        hm1.metric("سهم ۳ گروه نخست", fmt_pct(100 * h.head(3)["Dollar_Value"].sum() / total_h if total_h else None))
-        hm2.metric("سهم ۵ گروه نخست", fmt_pct(100 * h.head(5)["Dollar_Value"].sum() / total_h if total_h else None))
-        hm3.metric("سهم ۱۰ گروه نخست", fmt_pct(100 * h.head(10)["Dollar_Value"].sum() / total_h if total_h else None))
+        metric_card(hm1, "سهم ۳ گروه نخست", fmt_pct(100 * h.head(3)["Dollar_Value"].sum() / total_h if total_h else None))
+        metric_card(hm2, "سهم ۵ گروه نخست", fmt_pct(100 * h.head(5)["Dollar_Value"].sum() / total_h if total_h else None))
+        metric_card(hm3, "سهم ۱۰ گروه نخست", fmt_pct(100 * h.head(10)["Dollar_Value"].sum() / total_h if total_h else None))
 
 st.caption(
     "یادآوری: ارقام «بوشهر» در این داشبورد، تجارت ثبت‌شده در گمرک‌های تعریف‌شده برای بوشهر را نشان می‌دهد "

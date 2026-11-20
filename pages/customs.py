@@ -1,6 +1,7 @@
 
 import plotly.express as px
 import streamlit as st
+from page_utils import metric_card, horizontal_bar_layout, fix_year_axis
 
 from data_utils import load_parquet, load_trade_table, fmt_pct
 from page_utils import (
@@ -51,17 +52,18 @@ if not top.empty:
         x="_x", y="Custom", orientation="h",
         labels={"_x":xlab,"Custom":""},
     )
-    fig = chart_layout(fig, height=680, hovermode="closest")
+    fig = chart_layout(fig, height=720, hovermode="closest")
+    fig = horizontal_bar_layout(fig, top["Custom"])
     fig.update_layout(showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
 
 s3,s5,s10 = top_share_cards(snap, value_col=value_col)
 hhi = hhi_from_values(snap[value_col])
 a,b,c,d = st.columns(4)
-a.metric("سهم ۳ گمرک نخست", fmt_pct(s3))
-b.metric("سهم ۵ گمرک نخست", fmt_pct(s5))
-c.metric("سهم ۱۰ گمرک نخست", fmt_pct(s10))
-d.metric("شاخص HHI", "—" if hhi is None else f"{hhi:,.0f}")
+metric_card(a, "سهم ۳ گمرک نخست", fmt_pct(s3))
+metric_card(b, "سهم ۵ گمرک نخست", fmt_pct(s5))
+metric_card(c, "سهم ۱۰ گمرک نخست", fmt_pct(s10))
+metric_card(d, "شاخص HHI", "—" if hhi is None else f"{hhi:,.0f}")
 
 st.divider()
 st.markdown('<div class="section-title">مقایسه روند گمرک‌های منتخب</div>', unsafe_allow_html=True)
@@ -79,6 +81,7 @@ if not trend.empty:
         labels={"Year":"سال","_y":lab,"Custom":""},
     )
     fig_t = chart_layout(fig_t, height=500, y_title=lab)
+    fig_t = fix_year_axis(fig_t, trend["Year"])
     st.plotly_chart(fig_t, use_container_width=True)
 
 st.divider()
@@ -112,10 +115,10 @@ if all_customs:
         share = 100*row["Dollar_Value"]/nat_year if nat_year else None
         growth = yoy_from_table(ph, year, value_col="Dollar_Value")
         c1,c2,c3,c4 = st.columns(4)
-        c1.metric("ارزش تجارت", format_number(row["Dollar_Value"], "ارزش دلاری"))
-        c2.metric("سهم از کل کشور", fmt_pct(share))
-        c3.metric("رشد ارزش سالانه", fmt_pct(growth))
-        c4.metric("ارزش هر تن", format_number(row.get("Unit_Value"), "ارزش هر تن"))
+        metric_card(c1, "ارزش تجارت", format_number(row["Dollar_Value"], "ارزش دلاری"))
+        metric_card(c2, "سهم از کل کشور", fmt_pct(share))
+        metric_card(c3, "رشد ارزش سالانه", fmt_pct(growth))
+        metric_card(c4, "ارزش هر تن", format_number(row.get("Unit_Value"), "ارزش هر تن"))
 
 st.caption(
     "گمرک محل ثبت تجارت است و لزوماً محل تولید کالای صادراتی یا مصرف نهایی کالای وارداتی نیست."

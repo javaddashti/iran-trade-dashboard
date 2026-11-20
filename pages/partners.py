@@ -1,6 +1,7 @@
 
 import plotly.express as px
 import streamlit as st
+from page_utils import metric_card, horizontal_bar_layout, fix_year_axis
 
 from data_utils import load_trade_table, fmt_pct
 from page_utils import (
@@ -66,17 +67,18 @@ if not top.empty:
         x="_x", y="Country", orientation="h",
         labels={"_x":xlab,"Country":""},
     )
-    fig = chart_layout(fig, height=570, hovermode="closest")
+    fig = chart_layout(fig, height=610, hovermode="closest")
+    fig = horizontal_bar_layout(fig, top["Country"])
     fig.update_layout(showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
 
 s3,s5,s10 = top_share_cards(snap, value_col=value_col)
 hhi = hhi_from_values(snap[value_col])
 m1,m2,m3,m4 = st.columns(4)
-m1.metric("سهم ۳ شریک نخست", fmt_pct(s3))
-m2.metric("سهم ۵ شریک نخست", fmt_pct(s5))
-m3.metric("سهم ۱۰ شریک نخست", fmt_pct(s10))
-m4.metric("شاخص HHI", "—" if hhi is None else f"{hhi:,.0f}")
+metric_card(m1, "سهم ۳ شریک نخست", fmt_pct(s3))
+metric_card(m2, "سهم ۵ شریک نخست", fmt_pct(s5))
+metric_card(m3, "سهم ۱۰ شریک نخست", fmt_pct(s10))
+metric_card(m4, "شاخص HHI", "—" if hhi is None else f"{hhi:,.0f}")
 
 st.divider()
 st.markdown('<div class="section-title">روند تجارت با کشورهای منتخب</div>', unsafe_allow_html=True)
@@ -94,6 +96,7 @@ if not trend.empty:
         labels={"Year":"سال","_y":lab,"Country":""},
     )
     fig_t = chart_layout(fig_t, height=470, y_title=lab)
+    fig_t = fix_year_axis(fig_t, trend["Year"])
     st.plotly_chart(fig_t, use_container_width=True)
 
 st.divider()
@@ -109,7 +112,7 @@ if all_countries:
         share = 100 * row[value_col]/total_year if total_year else None
         growth = yoy_from_table(ph, year, value_col=value_col)
         c1,c2,c3,c4 = st.columns(4)
-        c1.metric(metric, format_number(row[value_col], metric))
-        c2.metric("سهم از کل", fmt_pct(share))
-        c3.metric("رشد سالانه", fmt_pct(growth))
-        c4.metric("ارزش هر تن", format_number(row.get("Unit_Value"), "ارزش هر تن"))
+        metric_card(c1, metric, format_number(row[value_col], metric))
+        metric_card(c2, "سهم از کل", fmt_pct(share))
+        metric_card(c3, "رشد سالانه", fmt_pct(growth))
+        metric_card(c4, "ارزش هر تن", format_number(row.get("Unit_Value"), "ارزش هر تن"))

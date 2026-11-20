@@ -1,4 +1,9 @@
 
+import html
+import math
+import re
+import textwrap
+
 import numpy as np
 import pandas as pd
 
@@ -34,63 +39,169 @@ def metric_column(metric):
     }[metric]
 
 def metric_scaled(series, metric):
+    """Choose readable chart units without tiny SI ticks such as 20µ billion.
+
+    The underlying values stay unchanged, only the chart scale/title varies.
+    """
+    valid = pd.to_numeric(pd.Series(series), errors="coerce")
+    magnitude = valid.abs().max()
+    magnitude = 0 if pd.isna(magnitude) else float(magnitude)
     if metric == "ارزش دلاری":
-        return series / 1e9, "میلیارد دلار"
+        if magnitude >= 1e9:
+            return series / 1e9, "میلیارد دلار"
+        if magnitude >= 1e6:
+            return series / 1e6, "میلیون دلار"
+        if magnitude >= 1e3:
+            return series / 1e3, "هزار دلار"
+        return series, "دلار"
     if metric == "وزن":
-        return series / 1e9, "میلیون تن"
+        if magnitude >= 1e9:
+            return series / 1e9, "میلیون تن"
+        if magnitude >= 1e6:
+            return series / 1e6, "هزار تن"
+        if magnitude >= 1e3:
+            return series / 1e3, "تن"
+        return series, "کیلوگرم"
     return series, "دلار به ازای هر تن"
 
+def metric_card(container, label, value, delta=None):
+    """Show a responsive Persian metric card without Streamlit's ellipsis.
+
+    Numeric text and its unit are separate elements so neither is cropped in
+    narrow five-column layouts. Input strings retain their existing units and
+    precision; this function only changes their presentation.
+    """
+    raw = str(value) if value is not None else "—"
+    match = re.match(r"^([+−-]?[0-9۰-۹][0-9۰-۹,.٫٬]*)\s*(.*)$", raw.strip())
+    if match:
+        number, unit = match.groups()
+    else:
+        number, unit = raw.strip(), ""
+
+    safe_label = html.escape(str(label))
+    safe_number = html.escape(number)
+    safe_unit = html.escape(unit)
+    unit_html = (f'<span class="trade-kpi-unit" dir="rtl">{safe_unit}</span>'
+                 if unit else "")
+
+    delta_html = ""
+    if delta is not None and str(delta).strip() not in ("", "—", "nan", "None"):
+        raw_delta = str(delta).strip()
+        downward = raw_delta.startswith(("-", "−"))
+        arrow = "↓" if downward else "↑"
+        delta_cls = "trade-kpi-delta negative" if downward else "trade-kpi-delta positive"
+        delta_html = (f'<div class="{delta_cls}"><span aria-hidden="true">{arrow}</span>'
+                      f'<span dir="auto">{html.escape(raw_delta)}</span></div>')
+
+    content = f"""<div class="trade-kpi" role="group" aria-label="{safe_label}: {html.escape(raw)}">
+      <div class="trade-kpi-label">{safe_label}</div>
+      <div class="trade-kpi-value"><bdi dir="ltr" class="trade-kpi-number">{safe_number}</bdi>{unit_html}</div>
+      {delta_html}
+    </div>"""
+    container.markdown(content, unsafe_allow_html=True)
+
+
+def _axis_label(label, *, long=False):
+    """Fit SVG axis labels into a reserved column while preserving hover text."""
+    label = " ".join(str(label).split())
+    if not label:
+        return ""
+    if not long:
+        # Right-to-left marker prevents country/custom names being mirrored.
+        return "\u200f" + html.escape(label)
+
+    # A readable two-line abbreviation is necessary for long HS descriptions.
+    # The underlying category remains intact and Plotly hover retains full text.
+    parts = textwrap.wrap(label, width=34, break_long_words=False,
+                          break_on_hyphens=False)
+    if len(parts) > 2:
+        parts = parts[:2]
+        parts[1] = parts[1].rstrip(" ،؛—-") + "…"
+    return "<br>".join("\u200f" + html.escape(x) for x in parts)
+
+
+def horizontal_bar_layout(fig, categories, *, long=False):
+    """Make horizontal-bar Persian category labels legible (not clipped)."""
+    labels = [str(x) for x in categories]
+    max_label_length = max((len(x) for x in labels), default=0)
+    # Customs names can be far longer than country names; reserve enough space.
+    left_margin = 310 if long else max(215, min(340, math.ceil(max_label_length * 6.8) + 30))
+    fig.update_layout(
+        margin=dict(l=left_margin, r=28, t=80, b=50),
+        hoverlabel=dict(align="right"),
+    )
+    fig.update_yaxes(
+        tickmode="array",
+        tickvals=labels,
+        ticktext=[_axis_label(x, long=long) for x in labels],
+        automargin=True,
+        tickfont=dict(size=12, family="Vazirmatn, Tahoma, Arial, sans-serif"),
+        ticklabelposition="outside",
+        title_text="",
+    )
+    return fig
+
+
+def fix_year_axis(fig, years):
+    """Display integer Iranian calendar years only, never e.g. 1401.5."""
+    valid = pd.to_numeric(pd.Series(list(years)), errors="coerce").dropna()
+    if valid.empty:
+        return fig
+    unique_years = sorted(set(int(y) for y in valid if math.isfinite(float(y))))
+    if not unique_years:
+        return fig
+    step = max(1, math.ceil(len(unique_years) / 16))
+    ticks = unique_years[::step]
+    if unique_years[-1] not in ticks:
+        ticks.append(unique_years[-1])
+    fig.update_xaxes(
+        type="linear",
+        tickmode="array",
+        tickvals=ticks,
+        ticktext=[str(y) for y in ticks],
+        tickangle=0,
+        automargin=True,
+        title_text="سال",
+    )
+    return fig
+
+
 def chart_layout(fig, height=430, y_title=None, hovermode="x unified"):
+    """Consistent chart style for Persian RTL pages."""
     fig.update_layout(
         height=height,
-        margin=dict(l=42, r=38, t=66, b=38),
+        margin=dict(l=70, r=35, t=82, b=48),
         paper_bgcolor="white",
         plot_bgcolor="white",
-        font=dict(
-            family="Vazirmatn, Tahoma, Arial, sans-serif",
-            size=13,
-        ),
+        font=dict(family="Vazirmatn, Tahoma, Arial, sans-serif", size=13),
         legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1,
+            orientation="h", yanchor="bottom", y=1.03,
+            xanchor="left", x=0,
             font=dict(family="Vazirmatn, Tahoma, Arial, sans-serif"),
         ),
+        hoverlabel=dict(align="right"),
         hovermode=hovermode,
     )
-
     title_text = fig.layout.title.text
     if title_text:
-        fig.update_layout(
-            title=dict(
-                text=rtl_text(title_text),
-                x=1,
-                xanchor="right",
-                font=dict(
-                    family="Vazirmatn, Tahoma, Arial, sans-serif",
-                    size=18,
-                ),
-            )
-        )
-
+        fig.update_layout(title=dict(
+            text="\u200f" + str(title_text), x=1, xanchor="right",
+            font=dict(family="Vazirmatn, Tahoma, Arial, sans-serif", size=17),
+        ))
     fig.update_xaxes(
-        showgrid=False,
-        automargin=True,
+        showgrid=False, automargin=True,
         tickfont=dict(family="Vazirmatn, Tahoma, Arial, sans-serif"),
         title_font=dict(family="Vazirmatn, Tahoma, Arial, sans-serif"),
     )
     fig.update_yaxes(
-        automargin=True,
-        gridcolor="rgba(15,23,42,0.08)",
-        zeroline=True,
-        zerolinecolor="rgba(15,23,42,0.24)",
+        automargin=True, gridcolor="rgba(15,23,42,0.08)",
+        zeroline=True, zerolinecolor="rgba(15,23,42,0.24)",
         title=y_title,
         tickfont=dict(family="Vazirmatn, Tahoma, Arial, sans-serif"),
         title_font=dict(family="Vazirmatn, Tahoma, Arial, sans-serif"),
     )
     return fig
+
 
 def top_share_cards(df, value_col="Dollar_Value", ns=(3, 5, 10)):
     total = pd.to_numeric(df[value_col], errors="coerce").sum()

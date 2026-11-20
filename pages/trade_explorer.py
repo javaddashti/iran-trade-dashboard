@@ -5,9 +5,10 @@ import duckdb
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from page_utils import metric_card, horizontal_bar_layout, fix_year_axis
 
 from data_utils import load_hs_reference_bundle
-from page_utils import chart_layout
+from page_utils import chart_layout, metric_scaled
 from hs_helpers import label_for
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -394,10 +395,10 @@ total_weight = annual["Weight_kg"].sum()
 overall_uv = total_dollar / (total_weight / 1000.0) if total_weight > 0 else None
 
 k1, k2, k3, k4 = st.columns(4)
-k1.metric("ارزش دلاری در کل دوره", f"{total_dollar/1e9:,.2f} میلیارد دلار")
-k2.metric("ارزش ریالی در کل دوره", f"{total_rial/1e12:,.2f} هزار میلیارد ریال")
-k3.metric("وزن در کل دوره", f"{total_weight/1e9:,.2f} میلیون تن")
-k4.metric(
+metric_card(k1, "ارزش دلاری در کل دوره", f"{total_dollar/1e9:,.2f} میلیارد دلار")
+metric_card(k2, "ارزش ریالی در کل دوره", f"{total_rial/1e12:,.2f} هزار میلیارد ریال")
+metric_card(k3, "وزن در کل دوره", f"{total_weight/1e9:,.2f} میلیون تن")
+metric_card(k4, 
     "ارزش هر تن در کل دوره",
     "—" if overall_uv is None else f"{overall_uv:,.0f} دلار/تن",
 )
@@ -421,7 +422,10 @@ metric_spec = {
 }
 col, scale, y_label, title = metric_spec[chart_metric]
 plot_df = annual[["Year", col]].copy()
-plot_df["Value"] = plot_df[col] / scale
+if chart_metric in ("ارزش دلاری", "وزن"):
+    plot_df["Value"], y_label = metric_scaled(plot_df[col], chart_metric)
+else:
+    plot_df["Value"] = plot_df[col] / scale
 
 fig = px.line(
     plot_df,
@@ -432,6 +436,7 @@ fig = px.line(
 )
 fig.update_layout(title=title)
 fig = chart_layout(fig, height=460, y_title=y_label)
+fig = fix_year_axis(fig, plot_df["Year"])
 st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------
